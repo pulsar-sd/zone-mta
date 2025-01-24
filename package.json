@@ -1,7 +1,7 @@
 {
     "name": "@pulsar-sd/zone-mta",
     "private": false,
-    "version": "0.1.16",
+    "version": "0.1.17",
     "description": "Tiny outbound MTA",
     "main": "app.js",
     "scripts": {
@@ -15,7 +15,7 @@
     "author": "Pulsar SD <info@pulsar-sd.com>",
     "license": "EUPL-1.1+",
     "dependencies": {
-        "@pulsar-sd/zone-mta": "file:",
+        "@scarf/scarf": "^1.4.0",
         "base32.js": "0.1.0",
         "crc-32": "1.2.2",
         "dnscache": "1.0.2",
@@ -39,6 +39,7 @@
         "seq-index": "1.1.0",
         "smtp-server": "3.13.6",
         "srs.js": "0.1.0",
+        "swagger-jsdoc": "^6.2.8",
         "wild-config": "1.7.1"
     },
     "devDependencies": {
