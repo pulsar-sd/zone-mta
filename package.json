@@ -15,6 +15,7 @@
     "author": "Pulsar SD <info@pulsar-sd.com>",
     "license": "EUPL-1.1+",
     "dependencies": {
+        "@pulsar-sd/zone-mta": "file:",
         "base32.js": "0.1.0",
         "crc-32": "1.2.2",
         "dnscache": "1.0.2",
