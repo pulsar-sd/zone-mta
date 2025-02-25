@@ -160,6 +160,42 @@ module.exports = {
             }
         },
 
+        // Send confirm message to the sender
+        'core/email-confirm': {
+            enabled: 'main',
+            // From: address for the confirm emails
+            mailerDaemon: {
+                name: 'Mail Delivery Subsystem',
+                // [HOSTNAME] will be replaced with the hostname that was used to send this message
+                address: 'mailer-daemon@[HOSTNAME]'
+            },
+            disableInterfaces: ['forwarder'], // do not confirm messages from this interface
+            sendingZone: 'bounce',
+
+            // Send a warning email about delayed delivery
+            delayEmail: {
+                enabled: true,
+                after: 3 * 3600 * 1000 // 3h
+            },
+
+            zoneConfig: {
+                // specify zone specific confirm options
+                myzonename: {
+                    // if true then ignore this block, revert to default
+                    disabled: true,
+                    // if not set then default mailerDaemon config is used
+                    mailerDaemon: {
+                        name: 'Mail Delivery Subsystem',
+                        // [HOSTNAME] will be replaced with the hostname that was used to send this message
+                        address: 'mailer-daemon@[HOSTNAME]'
+                    },
+                    // use same queue for handling confirms as for the original message
+                    // if not set then default queue is used
+                    sendingZone: 'myzonename'
+                }
+            }
+        },
+
         // POST bounce data to a HTTP URL
         'core/http-bounce': {
             enabled: false, // 'main'
