@@ -39,7 +39,7 @@ module.exports.init = function (app, done) {
             rootNode.setHeader('References', messageId);
         }
 
-        let confirmContent = `Sucessfully sent message to ${confirm.from}`;
+        let confirmContent = `Sucessfully sent message to ${confirm.originalRecipient}`;
         if(confirm.message) {
             if(typeof confirm.message === 'string' || confirm.message instanceof String){
                 confirmContent = confirm.message;
