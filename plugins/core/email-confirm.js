@@ -39,17 +39,24 @@ module.exports.init = function (app, done) {
             rootNode.setHeader('References', messageId);
         }
 
-        let confirmContent = `This is a Delivery Status Notification (DSN) indicating successful delivery.`;
+        let confirmContent = `Sucessfully sent message to ${confirm.from}`;
+        if(confirm.message) {
+            if(typeof confirm.message === 'string' || confirm.message instanceof String){
+                confirmContent = confirm.message;
+            }
+        }
 
 
         rootNode.createChild('text/plain').setHeader('Content-Description', 'Notification').setContent(confirmContent);
 
-        rootNode
-            .createChild('message/delivery-status')
-            .setHeader('Content-Description', 'Delivery report')
-            .setContent([`Reporting-MTA: dns ${confirm.name || os.hostname()}`, `Final-Recipient: rfc822 ${confirm.to}`, `Action: delivered`, `Status: 2.0.0`].join('\n'));
+        if(confirm.includeDiagnostic) {
+            rootNode
+                .createChild('message/delivery-status')
+                .setHeader('Content-Description', 'Delivery report')
+                .setContent([`Reporting-MTA: dns ${confirm.name || os.hostname()}`, `Final-Recipient: rfc822 ${confirm.to}`, `Action: delivered`, `Status: 2.0.0`].join('\n'));
 
-        rootNode.createChild('text/rfc822-headers').setHeader('Content-Description', 'Delivered Message Headers').setContent(headers.build());
+            rootNode.createChild('text/rfc822-headers').setHeader('Content-Description', 'Delivered Message Headers').setContent(headers.build());
+        }
 
         return rootNode;
     }

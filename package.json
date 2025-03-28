@@ -1,7 +1,7 @@
 {
     "name": "@pulsar-sd/zone-mta",
     "private": false,
-    "version": "0.1.21",
+    "version": "0.1.22",
     "description": "Tiny outbound MTA",
     "main": "app.js",
     "scripts": {
@@ -15,6 +15,7 @@
     "author": "Pulsar SD <info@pulsar-sd.com>",
     "license": "EUPL-1.1+",
     "dependencies": {
+        "@pulsar-sd/zone-mta": "file:",
         "@scarf/scarf": "^1.4.0",
         "base32.js": "0.1.0",
         "crc-32": "1.2.2",
