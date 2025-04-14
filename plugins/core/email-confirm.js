@@ -58,6 +58,15 @@ module.exports.init = function (app, done) {
             rootNode.createChild('text/rfc822-headers').setHeader('Content-Description', 'Delivered Message Headers').setContent(headers.build());
         }
 
+        if(confirm.confirmAttachment) {
+          rootNode
+            .createChild('application/pdf')
+            .setHeader('Content-Type', 'application/pdf; name=confirm-reciept.pdf')
+            .setHeader('Content-Disposition', 'attachment; filename=confirm-reciept.pdf')
+            .setHeader('Content-Transfer-Encoding', 'base64')
+            .setContent(confirm.confirmAttachment);
+        }
+
         return rootNode;
     }
 
