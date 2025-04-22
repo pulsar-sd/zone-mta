@@ -39,7 +39,7 @@ jobs:
               uses: actions/setup-node@v4
               with:
                   node-version: ${{ matrix.node }}
-            - run: which mongo
+            # - run: which mongo # remove this for now
             - run: npm install
             - name: Run tests
               run: npm run runtest
