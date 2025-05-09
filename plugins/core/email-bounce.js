@@ -91,19 +91,19 @@ Status: ${isDelayed ? '4.0.0' : '5.0.0'}
         return rootNode;
     }
 
-
-    function searchHeader(Header, searchKey) {
-      if (!Header || !Header.lines || !Array.isArray(Header.lines)) {
-        return undefined; // Or handle the error as needed
-      }
-
-      for (const lineHeader of Header.lines) {
-        if (lineHeader.key.toLowerCase() === searchKey.toLowerCase()) {
-          return lineHeader; // Return the entire Header if the key matches
+    function getHeaderBooleanValue(headerValue) {
+        try {
+          if (typeof headerValue === 'string') {
+            const lowerCaseValue = headerValue.toLowerCase()
+            return lowerCaseValue === 'true'
+          } else if (typeof headerValue === 'boolean') {
+            return headerValue === true
+          } else {
+            return false
+          }
+        } catch (error) {
+          return false
         }
-      }
-
-      return undefined; // Return undefined if no matching key is found
     }
 
     // Send bounce notification to the MAIL FROM email
@@ -120,9 +120,13 @@ Status: ${isDelayed ? '4.0.0' : '5.0.0'}
 
         let headers = bounce.headers;
 
-        if(searchHeader(headers, 'X-Epost-Confirmation')) {
-          // handled by confirmation plugin
-          return next();
+        // Check if the bounce is a confirmation bounce
+        if (headers.hasHeader('x-epost-confirmation')) {
+            const trigger = getHeaderBooleanValue(headers.getFirst('x-epost-confirmation'))
+            if (trigger) {
+                // handled by email-confirm.js
+                return next();
+            }
         }
 
         if (headers.get('Received').length > 25) {
