@@ -91,6 +91,21 @@ Status: ${isDelayed ? '4.0.0' : '5.0.0'}
         return rootNode;
     }
 
+
+    function searchHeader(Header, searchKey) {
+      if (!Header || !Header.lines || !Array.isArray(Header.lines)) {
+        return undefined; // Or handle the error as needed
+      }
+
+      for (const lineHeader of Header.lines) {
+        if (lineHeader.key.toLowerCase() === searchKey.toLowerCase()) {
+          return lineHeader; // Return the entire Header if the key matches
+        }
+      }
+
+      return undefined; // Return undefined if no matching key is found
+    }
+
     // Send bounce notification to the MAIL FROM email
     app.addHook('queue:bounce', (bounce, maildrop, next) => {
         if ((app.config.disableInterfaces || []).includes(bounce.interface)) {
@@ -104,6 +119,11 @@ Status: ${isDelayed ? '4.0.0' : '5.0.0'}
         }
 
         let headers = bounce.headers;
+
+        if(searchHeader(headers, 'X-Epost-Confirmation')) {
+          // handled by confirmation plugin
+          return next();
+        }
 
         if (headers.get('Received').length > 25) {
             // too many hops
