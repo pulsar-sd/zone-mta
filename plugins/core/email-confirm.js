@@ -39,10 +39,21 @@ module.exports.init = function (app, done) {
             rootNode.setHeader('References', messageId);
         }
 
-        let confirmContent = `Sucessfully sent message to ${confirm.originalRecipient}`;
+        let confirmContent = ''
+        if(confirm.category === 'SUCCESS') {
+          confirmContent = `Sucessfully sent message to ${confirm.originalRecipient}`;
+        }
+        else if (confirm.category === 'FAILURE') {
+          confirmContent = `Delivery to the ${confirm.originalRecipient} recipient failed permanently`
+        }
         if(confirm.message) {
             if(typeof confirm.message === 'string' || confirm.message instanceof String){
                 confirmContent = confirm.message;
+            }
+        }
+        if(confirm.failMessage) {
+            if(typeof confirm.failMessage === 'string' || confirm.failMessage instanceof String){
+                confirmContent = confirm.failMessage;
             }
         }
 
@@ -53,7 +64,7 @@ module.exports.init = function (app, done) {
             rootNode
                 .createChild('message/delivery-status')
                 .setHeader('Content-Description', 'Delivery report')
-                .setContent([`Reporting-MTA: dns ${confirm.name || os.hostname()}`, `Final-Recipient: rfc822 ${confirm.to}`, `Action: delivered`, `Status: 2.0.0`].join('\n'));
+                .setContent([`Reporting-MTA: dns ${confirm.name || os.hostname()}`, `Final-Recipient: rfc822 ${confirm.to}`, `Action: ${confirm.category==='SUCCESS'?'delivered':'failed'}`, `Status: ${confirm.category==='SUCCESS'?'2.0.0':'5.0.0'}`].join('\n'));
 
             rootNode.createChild('text/rfc822-headers').setHeader('Content-Description', 'Delivered Message Headers').setContent(headers.build());
         }
