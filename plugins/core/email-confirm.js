@@ -32,7 +32,7 @@ module.exports.init = function (app, done) {
         rootNode.setHeader('X-Sending-Zone', sendingZone);
         rootNode.setHeader('X-Recipients', confirm.to);
         rootNode.setHeader('Auto-Submitted', 'auto-generated');
-        rootNode.setHeader('Subject', confirm.subject);
+        rootNode.setHeader('Subject', `${confirm.subject} (Success)`);
 
         if (messageId) {
             rootNode.setHeader('In-Reply-To', messageId);
@@ -97,7 +97,7 @@ module.exports.init = function (app, done) {
       rootNode.setHeader('X-Sending-Zone', sendingZone);
       rootNode.setHeader('X-Failed-Recipients', bounce.to);
       rootNode.setHeader('Auto-Submitted', 'auto-replied');
-      rootNode.setHeader('Subject', `Delivery Status Notification (${isDelayed ? 'Delay' : 'Failure'})`);
+      rootNode.setHeader('Subject', `${confirm.subject} (Failure)`);
 
       if (messageId) {
           rootNode.setHeader('In-Reply-To', messageId);
