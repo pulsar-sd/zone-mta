@@ -40,23 +40,12 @@ module.exports.init = function (app, done) {
         }
 
         let confirmContent = ''
-        if(confirm.category === 'SUCCESS') {
-          confirmContent = `Sucessfully sent message to ${confirm.originalRecipient}`;
-        }
-        else if (confirm.category === 'FAILURE') {
-          confirmContent = `Delivery to the ${confirm.originalRecipient} recipient failed permanently`
-        }
+        confirmContent = `Sucessfully sent message to ${confirm.originalRecipient}`;
         if(confirm.message) {
             if(typeof confirm.message === 'string' || confirm.message instanceof String){
                 confirmContent = confirm.message;
             }
         }
-        if(confirm.failMessage) {
-            if(typeof confirm.failMessage === 'string' || confirm.failMessage instanceof String){
-                confirmContent = confirm.failMessage;
-            }
-        }
-
 
         rootNode.createChild('text/plain').setHeader('Content-Description', 'Notification').setContent(confirmContent);
 
@@ -80,6 +69,101 @@ module.exports.init = function (app, done) {
 
         return rootNode;
     }
+
+    function generateBounceMessage(bounce, opts) {
+      opts = opts || {};
+      const { isDelayed } = opts;
+
+      let headers = bounce.headers;
+      let messageId = headers.getFirst('Message-ID');
+
+      let cfg = app.config.zoneConfig[bounce.zone];
+      if (!cfg || cfg.disabled) {
+          cfg = {};
+      }
+
+      let from = {name:app.config.mailerDaemon.name,address:bounce.from} || cfg.mailerDaemon || app.config.mailerDaemon;
+      let to = bounce.to;
+      let sendingZone = cfg.sendingZone || app.config.sendingZone;
+
+      let rootNode = new MimeNode('multipart/report; report-type=delivery-status');
+
+      // format Mailer Daemon address
+      let fromAddress = rootNode._convertAddresses(rootNode._parseAddresses(from)).replace(/\[HOSTNAME\]/gi, bounce.name || os.hostname());
+
+      rootNode.setHeader('X-Epost-Sign', true);
+      rootNode.setHeader('From', fromAddress);
+      rootNode.setHeader('To', to);
+      rootNode.setHeader('X-Sending-Zone', sendingZone);
+      rootNode.setHeader('X-Failed-Recipients', bounce.to);
+      rootNode.setHeader('Auto-Submitted', 'auto-replied');
+      rootNode.setHeader('Subject', `Delivery Status Notification (${isDelayed ? 'Delay' : 'Failure'})`);
+
+      if (messageId) {
+          rootNode.setHeader('In-Reply-To', messageId);
+          rootNode.setHeader('References', messageId);
+      }
+
+      let bounceContent = `Delivery to the following recipient failed permanently:
+  ${bounce.to}
+
+Technical details of permanent failure:
+
+${bounce.response}
+
+`;
+
+      if (isDelayed) {
+          bounceContent = `Delivery incomplete
+
+There was a temporary problem delivering your message to ${bounce.to}.
+
+Delivery will be retried. You'll be notified if the delivery fails permanently.
+
+Technical details of the failure:
+
+${bounce.response}
+
+`;
+      }
+
+      rootNode.createChild('text/plain').setHeader('Content-Description', 'Notification').setContent(bounceContent);
+
+      rootNode
+          .createChild('message/delivery-status')
+          .setHeader('Content-Description', 'Delivery report')
+          .setContent(
+              `Reporting-MTA: dns; ${bounce.name || os.hostname()}
+X-ZoneMTA-Queue-ID: ${bounce.id}
+X-ZoneMTA-Sender: rfc822; ${bounce.from}
+Arrival-Date: ${new Date(bounce.arrivalDate).toUTCString().replace(/GMT/, '+0000')}
+
+Final-Recipient: rfc822; ${bounce.to}
+Action: ${isDelayed ? 'delayed' : 'failed'}
+Status: ${isDelayed ? '4.0.0' : '5.0.0'}
+` +
+                  (bounce.mxHostname
+                      ? `Remote-MTA: dns; ${bounce.mxHostname}
+`
+                      : '') +
+                  `Diagnostic-Code: smtp; ${bounce.response}
+
+`
+          );
+
+      rootNode.createChild('text/rfc822-headers').setHeader('Content-Description', 'Undelivered Message Headers').setContent(headers.build());
+
+      if(bounce.confirmAttachment) {
+        rootNode
+          .createChild('application/pdf')
+          .setHeader('Content-Type', 'application/pdf; name=confirm-reciept.pdf')
+          .setHeader('Content-Disposition', 'attachment; filename=confirm-reciept.pdf')
+          .setHeader('Content-Transfer-Encoding', 'base64')
+          .setContent(bounce.confirmAttachment);
+      }
+
+      return rootNode;
+  }
 
     // Send confirm notification to the MAIL FROM email
     app.addHook('queue:confirm', (confirm, maildrop, next) => {
@@ -116,7 +200,13 @@ module.exports.init = function (app, done) {
             time: Date.now()
         };
 
-        let mail = generateConfirmMessage(confirm);
+        let mail = null
+
+        if(confirm.category==='SUCCESS'){
+          mail = generateConfirmMessage(confirm);
+        } else {
+          mail = generateBounceMessage(confirm);
+        }
 
         app.getQueue().generateId((err, id) => {
             if (err) {
