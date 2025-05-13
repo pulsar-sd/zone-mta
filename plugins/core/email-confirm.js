@@ -97,7 +97,7 @@ module.exports.init = function (app, done) {
       rootNode.setHeader('X-Sending-Zone', sendingZone);
       rootNode.setHeader('X-Failed-Recipients', bounce.to);
       rootNode.setHeader('Auto-Submitted', 'auto-replied');
-      rootNode.setHeader('Subject', `${confirm.subject} (Failure)`);
+      rootNode.setHeader('Subject', `${bounce.subject} (Failure)`);
 
       if (messageId) {
           rootNode.setHeader('In-Reply-To', messageId);
