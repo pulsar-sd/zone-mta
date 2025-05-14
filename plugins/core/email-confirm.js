@@ -105,7 +105,7 @@ module.exports.init = function (app, done) {
       }
 
       let bounceContent = `Delivery to the following recipient failed permanently:
-  ${bounce.to}
+  ${bounce.originalRecipient}
 
 Technical details of permanent failure:
 
