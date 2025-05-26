@@ -19,7 +19,7 @@ module.exports.init = function (app, done) {
 
         let from = {name:app.config.mailerDaemon.name,address:confirm.from} || cfg.mailerDaemon || app.config.mailerDaemon;
         let to = confirm.to;
-        let sendingZone = cfg.sendingZone || app.config.sendingZone;
+        let sendingZone = confirm.zone || cfg.sendingZone || app.config.sendingZone;
 
         let rootNode = new MimeNode('multipart/report; report-type=delivery-status');
 
@@ -84,7 +84,7 @@ module.exports.init = function (app, done) {
 
       let from = {name:app.config.mailerDaemon.name,address:bounce.from} || cfg.mailerDaemon || app.config.mailerDaemon;
       let to = bounce.to;
-      let sendingZone = cfg.sendingZone || app.config.sendingZone;
+      let sendingZone = confirm.zone || cfg.sendingZone || app.config.sendingZone;
 
       let rootNode = new MimeNode('multipart/report; report-type=delivery-status');
 
