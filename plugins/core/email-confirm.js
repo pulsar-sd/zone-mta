@@ -115,11 +115,8 @@ ${bounce.response}
 
       if (isDelayed) {
           bounceContent = `Delivery incomplete
-
 There was a temporary problem delivering your message to ${bounce.to}.
-
 Delivery will be retried. You'll be notified if the delivery fails permanently.
-
 Technical details of the failure:
 
 ${bounce.response}
