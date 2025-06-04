@@ -1,7 +1,7 @@
 {
     "name": "@pulsar-sd/zone-mta",
     "private": false,
-    "version": "0.1.35",
+    "version": "0.1.36",
     "description": "Tiny outbound MTA",
     "main": "app.js",
     "scripts": {
@@ -21,7 +21,7 @@
         "crc-32": "1.2.2",
         "dnscache": "1.0.2",
         "gelf": "2.0.1",
-        "ioredis": "5.4.1",
+        "ioredis": "^5.6.1",
         "isemail": "3.2.0",
         "js-yaml": "4.1.0",
         "libmime": "5.3.5",
