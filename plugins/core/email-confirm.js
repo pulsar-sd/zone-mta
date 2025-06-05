@@ -210,6 +210,8 @@ Status: ${isDelayed ? '4.0.0' : '5.0.0'}
                 return next(err);
             }
             envelope.id = id;
+            // Add sendingZone to envelope for confirmation message
+            envelope.sendingZone = confirm.zone;
 
             maildrop.add(envelope, mail.createReadStream(), err => {
                 if (err && err.name !== 'SMTPResponse') {
