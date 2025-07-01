@@ -1,4 +1,5 @@
 'use strict';
+const os = require('os')
 
 module.exports = {
     // If started as root then privileges are dropped after all ports are bound
@@ -236,6 +237,14 @@ module.exports = {
             addSignatureTimestamp: false,
             // Time validity of the signature given in seconds, for default value see below
             signatureExpireIn: 0
+        },
+
+        // Email approval plugin – holds messages for recipient approval
+        'core/email-approval': {
+          enabled: ['receiver', 'main'],
+          approvalExpiry: 7 * 24 * 60 * 60 * 1000, // 7 days
+          mailerDaemon: 'no-reply@' + os.hostname(),
+          serverBaseUrl: 'http://localhost:12080',
         },
 
         // Make sure messages have all required headers like Date or Message-ID
