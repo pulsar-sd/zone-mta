@@ -245,6 +245,12 @@ module.exports = {
           approvalExpiry: 7 * 24 * 60 * 60 * 1000, // 7 days
           mailerDaemon: 'no-reply@' + os.hostname(),
           serverBaseUrl: 'http://localhost:12080',
+          initialSubject: "Registered Mail Initial Subject",
+          notificationSubject: "Registered Mail Notification Subject",
+          arrivalSubject: "Registered Mail Confirmation Arrival Subject",
+          rejectSubject: "Registered Mail Confirmation Reject Subject",
+          readSubject: "Registered Mail Read Notification Subject",
+
         },
 
         // Make sure messages have all required headers like Date or Message-ID
