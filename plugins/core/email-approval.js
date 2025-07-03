@@ -6,6 +6,7 @@ const { generateEmailHtml } = require('@pulsar-sd/zone-mta/lib/registered-mail-t
 
 module.exports.title = 'Email Approval'
 const REGISTERED_HEADER = 'X-Epost-Registered'
+const ORIGINAL_ID_HEADER = 'Triggering-Message-ID'
 const PLUGIN_TITLE = 'Registered Mail'
 
 module.exports.init = function (app, done) {
@@ -31,19 +32,19 @@ module.exports.init = function (app, done) {
       }
       envelope.deferDelivery = Date.now() + HOLD_TIME
 
-      const acceptMessageDetails = {
+      const initialMessageDetails = {
         id: envelope.id,
         originalEnvelope: envelope,
         type: 'initial',
         subject: app.config.initialSubject,
         to: [envelope.from],
       }
-      let acceptOK = false
-      generateAndSendNotification(acceptMessageDetails, app, err => {
+      let initialOK = false
+      generateAndSendNotification(initialMessageDetails, app, err => {
         if (err) {
           throw new Error(err.message)
         }
-        acceptOK = true
+        initialOK = true
       })
 
       const notifMessageDetails = {
@@ -51,6 +52,7 @@ module.exports.init = function (app, done) {
         originalEnvelope: envelope,
         type: 'notification',
         subject: app.config.notificationSubject,
+        from: envelope.from,
         to: envelope.to,
         sendingZone: envelope.sendingZone
       }
@@ -61,7 +63,7 @@ module.exports.init = function (app, done) {
         }
         notifOK = true
       })
-      if (acceptOK && notifOK) {
+      if (initialOK && notifOK) {
         app.logger.info(`[${PLUGIN_TITLE}]`, `Acceptance and notification for EID ${id} queued for sender and recipient(s)`)
       }
       next()
@@ -69,6 +71,50 @@ module.exports.init = function (app, done) {
       app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
       next()
     }
+  })
+
+  app.addHook('queue:bounce', async (bounce, next) => {
+    if (bounce.interface !== 'approval') {
+      return next()
+    }
+
+    const id = bounce.id
+    const bounceReason = bounce.response
+    const queue = app.getQueue()
+    if (!queue) {
+      return next()
+    }
+    const collection = queue.mongodb.collection('mail.files')
+    const originalID = bounce.headers.getFirst(ORIGINAL_ID_HEADER)
+    const query = {
+      'metadata.data.id': originalID
+    }
+    collection.findOne(query).then(record => {
+      if (!record) {
+        throw new Error(`Record with ID ${originalID} not found!`)
+      }
+      const queueData = record.metadata.data
+      const messageDetails = {
+        id: id,
+        type: 'error',
+        subject: app.config.errorSubject,
+        originalEnvelope: queueData,
+        sendingZone: queueData.sendingZone,
+        to: [queueData.from],
+        errMsg: bounceReason,
+      }
+      generateAndSendNotification(messageDetails, app, err => {
+        if (err) {
+          throw new Error(err.message)
+        }
+        app.logger.info(`[${PLUGIN_TITLE}]`, `Error notification for EID ${id} queued for sender`)
+        return
+      })
+    })
+    .catch(err => {
+      app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
+      return
+    })
   })
 
   app.addAPI('get', '/accept/:id/:sendByEpost', (req, res, next) => {
@@ -114,7 +160,7 @@ module.exports.init = function (app, done) {
         subject: app.config.arrivalSubject,
         originalEnvelope: queueData,
         sendingZone: sendByEpost ? 'eposthub' : queueData.sendingZone,
-        to: [queueData.from], // the original sender is the recipient of this notification(?)
+        to: [queueData.from],
       }
       generateAndSendNotification(messageDetails, app, err => {
         if (err) {
@@ -124,11 +170,11 @@ module.exports.init = function (app, done) {
         next()
       })
     })
-      .catch(err => {
-        res.json(503, { error: err })
-        app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
-        next()
-      })
+    .catch(err => {
+      res.json(503, { error: err })
+      app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
+      next()
+    })
   })
 
   app.addAPI('get', '/reject/:id', (req, res, next) => {
@@ -217,6 +263,7 @@ module.exports.init = function (app, done) {
       if (!record) {
         throw new Error(`Record with ID ${id} not found!`)
       }
+      res.json(200, { status: 'read', id })
       const queueData = record.metadata.data
       const messageDetails = {
         id: id,
@@ -234,7 +281,7 @@ module.exports.init = function (app, done) {
       next()
     })
       .catch(err => {
-        res.json(503, { error: err })
+        res.json(500, { error: err })
         app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
         next()
       })
@@ -254,16 +301,18 @@ function generateAndSendNotification(messageDetails, app, callback) {
       return callback(err)
     }
 
-    const { originalEnvelope, id, subject, type, to, sendingZone } = messageDetails
+    const { originalEnvelope, id, subject, type, from, to, sendingZone, errMsg } = messageDetails
 
     const notifEnvelope = {
       id: newId,
       interface: 'approval',
-      from: to && to[0] ? to[0] : app.config.mailerDaemon,
+      from: from ? from : app.config.mailerDaemon,
       to: to,
       sendingZone: sendingZone,
       transtype: 'NOTIFY',
       time: Date.now(),
+      originalEnvelope: originalEnvelope,
+      triggeringMessageID: id
     }
 
     // Build notification message
@@ -273,6 +322,7 @@ function generateAndSendNotification(messageDetails, app, callback) {
     root.setHeader('Subject', subject)
     root.setHeader('Content-Type', 'text/html charset=UTF-8')
     root.setHeader('X-Epost-Sign', 'true')
+    root.setHeader(ORIGINAL_ID_HEADER, id)
 
     let originalSubject = ''
     if (typeof originalEnvelope.headers.getFirst === 'function') {
@@ -288,6 +338,7 @@ function generateAndSendNotification(messageDetails, app, callback) {
       acceptUrl: '',
       rejectUrl: '',
       epostUrl: '',
+      errMsg: errMsg,
     }
 
     if (id) {
