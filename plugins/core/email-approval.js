@@ -54,6 +54,7 @@ module.exports.init = function (app, done) {
         subject: app.config.notificationSubject,
         from: envelope.from,
         to: envelope.to,
+        email: envelope.to,
         sendingZone: envelope.sendingZone
       }
       let notifOK = false

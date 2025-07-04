@@ -251,6 +251,7 @@ module.exports = {
           rejectSubject: "Registered Mail Confirmation Reject Subject",
           readSubject: "Registered Mail Read Notification Subject",
           errorSubject: "Registered Mail Error Notification Subject",
+          expireSubject: "Registered Mail Expiration Subject",
         },
 
         // Make sure messages have all required headers like Date or Message-ID
