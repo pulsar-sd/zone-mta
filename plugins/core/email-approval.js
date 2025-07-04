@@ -123,7 +123,9 @@ module.exports.init = function (app, done) {
     const sendByEpost = req.params.sendByEpost
     const queue = app.getQueue()
     if (!queue) {
-      res.json(503, { error: 'Queue not ready' })
+      res.writeHead(503, {'Content-Type': 'text/html'});
+      res.write(generateEmailHtml('apiResponse', {messageText: `Queue not ready`}));
+      res.end();
       return next()
     }
 
@@ -149,9 +151,13 @@ module.exports.init = function (app, done) {
 
       queue.update(id, null, update, err => {
         if (err) {
-          res.json(500, { error: err.message })
+          res.writeHead(500, {'Content-Type': 'text/html'});
+          res.write(generateEmailHtml('apiResponse', {messageText: err.message}));
+          res.end();
         } else {
-          res.json(200, { status: 'accepted', id })
+          res.writeHead(200, {'Content-Type': 'text/html'});
+          res.write(generateEmailHtml('apiResponse', {messageText: `Message ${id} accepted`}));
+          res.end();
         }
       })
 
@@ -172,7 +178,9 @@ module.exports.init = function (app, done) {
       })
     })
     .catch(err => {
-      res.json(503, { error: err })
+      res.writeHead(503, {'Content-Type': 'text/html'});
+      res.write(generateEmailHtml('apiResponse', {messageText: err}));
+      res.end();
       app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
       next()
     })
@@ -182,7 +190,9 @@ module.exports.init = function (app, done) {
     const id = req.params.id
     const queue = app.getQueue()
     if (!queue) {
-      res.json(503, { error: 'Queue not ready' })
+      res.writeHead(503, {'Content-Type': 'text/html'});
+      res.write(generateEmailHtml('apiResponse', {messageText: 'Queue not ready'}));
+      res.end();
       return next()
     }
 
@@ -197,13 +207,17 @@ module.exports.init = function (app, done) {
       const queueData = record.metadata.data
       queue.mongodb.collection(queue.options.collection).deleteMany({ id }, err => {
         if (err) {
-          res.json(500, { error: err.message })
+          res.writeHead(500, {'Content-Type': 'text/html'});
+          res.write(generateEmailHtml('apiResponse', {messageText: err.msg}));
+          res.end();
           return next()
         }
         else {
           queue.removeMessage(id, rmErr => {
             if (rmErr) {
-              res.json(500, { error: rmErr.message })
+              res.writeHead(500, {'Content-Type': 'text/html'});
+              res.write(generateEmailHtml('apiResponse', {messageText: rmErr.message}));
+              res.end();
               app.logger.info(`[${PLUGIN_TITLE}] Rejecting failure:`, `Failed to reject message with EID: ${id}`)
               next()
             }
@@ -235,14 +249,18 @@ module.exports.init = function (app, done) {
             if (recipientOK && senderOK) {
               app.logger.info(`[${PLUGIN_TITLE}]`, `Rejection notification for EID ${id} queued for sender and recipient(s)`)
             }
-            res.json(200, { status: 'rejected', id })
+            res.writeHead(200, {'Content-Type': 'text/html'});
+            res.write(generateEmailHtml('apiResponse', {messageText: `Message ${id} rejected`}));
+            res.end();
             next()
           })
         }
       })
     })
       .catch(err => {
-        res.json(503, { error: err })
+        res.writeHead(503, {'Content-Type': 'text/html'});
+        res.write(generateEmailHtml('apiResponse', {messageText: err}));
+        res.end();
         app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
         next()
       })
@@ -252,7 +270,9 @@ module.exports.init = function (app, done) {
     const id = req.params.id
     const queue = app.getQueue()
     if (!queue) {
-      res.json(503, { error: 'Queue not ready' })
+      res.writeHead(503, {'Content-Type': 'text/html'});
+      res.write(generateEmailHtml('apiResponse', {messageText: 'Queue not ready'}));
+      res.end();
       return next()
     }
 
@@ -264,7 +284,9 @@ module.exports.init = function (app, done) {
       if (!record) {
         throw new Error(`Record with ID ${id} not found!`)
       }
-      res.json(200, { status: 'read', id })
+      res.writeHead(200, {'Content-Type': 'text/html'});
+      res.write(generateEmailHtml('apiResponse', {messageText: `Message ${id} read`}));
+      res.end();
       const queueData = record.metadata.data
       const messageDetails = {
         id: id,
@@ -282,7 +304,9 @@ module.exports.init = function (app, done) {
       next()
     })
       .catch(err => {
-        res.json(500, { error: err })
+        res.writeHead(500, {'Content-Type': 'text/html'});
+        res.write(generateEmailHtml('apiResponse', {messageText: err}));
+        res.end();
         app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
         next()
       })
