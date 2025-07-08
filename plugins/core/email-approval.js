@@ -2,7 +2,7 @@
 
 const MimeNode = require('nodemailer/lib/mime-node')
 const MailDrop = require('@pulsar-sd/zone-mta/lib/mail-drop')
-const { generateEmailHtml } = require('@pulsar-sd/zone-mta/lib/registered-mail-templates')
+const { generateEmailHtml, generateEmailPlaintext } = require('@pulsar-sd/zone-mta/lib/registered-mail-templates')
 
 module.exports.title = 'Email Approval'
 const REGISTERED_HEADER = 'X-Epost-Registered'
@@ -326,7 +326,11 @@ function generateAndSendNotification(messageDetails, app, callback) {
       return callback(err)
     }
 
-    const { originalEnvelope, id, subject, type, from, to, sendingZone, errMsg } = messageDetails
+    let { originalEnvelope, id, subject, type, from, to, sendingZone, errMsg } = messageDetails
+
+    if(!sendingZone) {
+      sendingZone = originalEnvelope.sendingZone
+    }
 
     const notifEnvelope = {
       id: newId,
@@ -341,13 +345,14 @@ function generateAndSendNotification(messageDetails, app, callback) {
     }
 
     // Build notification message
-    const root = new MimeNode('text/plain')
+    const root = new MimeNode('multipart/alternative')
     root.setHeader('From', notifEnvelope.from)
     root.setHeader('To', notifEnvelope.to.join(', '))
     root.setHeader('Subject', subject)
-    root.setHeader('Content-Type', 'text/html charset=UTF-8')
     root.setHeader('X-Epost-Sign', 'true')
+    root.setHeader('X-Sending-Zone', sendingZone)
     root.setHeader(ORIGINAL_ID_HEADER, id)
+    root.setHeader('MIME-Version', '1.0')
 
     let originalSubject = ''
     if (typeof originalEnvelope.headers.getFirst === 'function') {
@@ -372,10 +377,19 @@ function generateAndSendNotification(messageDetails, app, callback) {
       templateData.epostUrl = `${baseUrl}/plugin/${app.options.key || 'core/email-approval'}/accept/${id}/1`
       templateData.rejectUrl = `${baseUrl}/plugin/${app.options.key || 'core/email-approval'}/reject/${id}`
     }
+    const plainContent = generateEmailPlaintext(type,templateData)
+    root.createChild('text/plain; charset=utf-8')
+    .setHeader('Content-Disposition', 'inline')
+    .setContent(plainContent)
 
 
     const htmlContent = generateEmailHtml(type, templateData)
-    root.setContent(htmlContent)
+    root.createChild('text/html; charset=UTF-8')
+    .setHeader('Content-Disposition', 'inline')
+    .setContent(htmlContent)
+
+
+
 
     const maildrop = new MailDrop(queue)
 
