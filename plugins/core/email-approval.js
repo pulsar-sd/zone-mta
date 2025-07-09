@@ -120,13 +120,12 @@ module.exports.init = function (app, done) {
 
   app.addAPI('get', '/accept/:id/:sendByEpost', (req, res, next) => {
     const id = req.params.id
-    const sendByEpost = req.params.sendByEpost
+    var sendByEpost = req.params.sendByEpost
     const queue = app.getQueue()
     if (!queue) {
       res.writeHead(503, {'Content-Type': 'text/html'});
       res.write(generateEmailHtml('apiResponse', {messageText: `Queue not ready`}));
       res.end();
-      return next()
     }
 
 
@@ -134,56 +133,72 @@ module.exports.init = function (app, done) {
     const query = {
       'metadata.data.id': id
     }
+    try {
     collection.findOne(query).then(record => {
       if (!record) {
         throw new Error(`Record with ID ${id} not found!`)
       }
-      const queueData = record.metadata.data
-      const update = {
-        $set: {
-          queued: new Date(),
-          locked: false
-        },
-        $unset: {
-          _deferred: ''
-        }
-      }
 
-      queue.update(id, null, update, err => {
-        if (err) {
-          res.writeHead(500, {'Content-Type': 'text/html'});
-          res.write(generateEmailHtml('apiResponse', {messageText: err.message}));
-          res.end();
-        } else {
-          res.writeHead(200, {'Content-Type': 'text/html'});
-          res.write(generateEmailHtml('apiResponse', {messageText: `Message ${id} accepted`}));
-          res.end();
+        const queueData = record.metadata.data
+        const defaultSendingZone = queueData.sendingZone ? queueData.sendingZone : 'default'
+        const sendingZoneUpdate = {
+          'metadata.data.headers': {
+            key: 'x-sending-zone',
+            line: `X-Sending-Zone: ${sendByEpost==='1' ? 'this_is_a_new_sendingzone' : defaultSendingZone}`
+          }
         }
-      })
+        const update = {
+          $set: {
+            queued: new Date(),
+            locked: false
+          },
+          $unset: {
+            _deferred: ''
+          }
+        }
 
-      const messageDetails = {
-        id: id,
-        type: 'arrival',
-        subject: app.config.arrivalSubject,
-        originalEnvelope: queueData,
-        sendingZone: sendByEpost ? 'eposthub' : queueData.sendingZone,
-        to: [queueData.from],
-      }
-      generateAndSendNotification(messageDetails, app, err => {
-        if (err) {
-          throw new Error(err.message)
-        }
-        app.logger.info(`[${PLUGIN_TITLE}]`, `Acceptance notification for EID ${id} queued for sender`)
-        next()
+        queue.update(id, null, update, err => {
+          if (err) {
+            res.writeHead(500, {'Content-Type': 'text/html'});
+            res.write(generateEmailHtml('apiResponse', {messageText: err.message}));
+            res.end();
+          } else {
+            collection.update({'metadata.data.id': id}, {$push:sendingZoneUpdate},err=> {
+              if(err) {
+                res.writeHead(500, {'Content-Type': 'text/html'});
+                res.write(generateEmailHtml('apiResponse', {messageText: err.message}));
+              }
+              res.writeHead(200, {'Content-Type': 'text/html'});
+              res.write(generateEmailHtml('apiResponse', {messageText: `Message ${id} accepted`}));
+              res.end();
+              const messageDetails = {
+                id: id,
+                type: 'arrival',
+                subject: app.config.arrivalSubject,
+                originalEnvelope: queueData,
+                to: [queueData.from],
+              }
+              generateAndSendNotification(messageDetails, app, err => {
+                if (err) {
+                  throw new Error(err.message)
+                }
+                app.logger.info(`[${PLUGIN_TITLE}]`, `Acceptance notification for EID ${id} queued for sender`)
+              })
+            })
+          }
+        })
       })
-    })
-    .catch(err => {
+      .catch(err => {
+        res.writeHead(503, {'Content-Type': 'text/html'});
+        res.write(generateEmailHtml('apiResponse', {messageText: err}));
+        res.end();
+        app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
+      })
+    } catch (err) {
       res.writeHead(503, {'Content-Type': 'text/html'});
       res.write(generateEmailHtml('apiResponse', {messageText: err}));
       res.end();
-      app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
-      next()
-    })
+    }
   })
 
   app.addAPI('get', '/reject/:id', (req, res, next) => {
@@ -193,7 +208,6 @@ module.exports.init = function (app, done) {
       res.writeHead(503, {'Content-Type': 'text/html'});
       res.write(generateEmailHtml('apiResponse', {messageText: 'Queue not ready'}));
       res.end();
-      return next()
     }
 
     const collection = queue.mongodb.collection('mail.files')
@@ -210,7 +224,6 @@ module.exports.init = function (app, done) {
           res.writeHead(500, {'Content-Type': 'text/html'});
           res.write(generateEmailHtml('apiResponse', {messageText: err.msg}));
           res.end();
-          return next()
         }
         else {
           queue.removeMessage(id, rmErr => {
@@ -219,7 +232,6 @@ module.exports.init = function (app, done) {
               res.write(generateEmailHtml('apiResponse', {messageText: rmErr.message}));
               res.end();
               app.logger.info(`[${PLUGIN_TITLE}] Rejecting failure:`, `Failed to reject message with EID: ${id}`)
-              next()
             }
             const recipientMessageDetails = {
               id: id,
@@ -252,7 +264,6 @@ module.exports.init = function (app, done) {
             res.writeHead(200, {'Content-Type': 'text/html'});
             res.write(generateEmailHtml('apiResponse', {messageText: `Message ${id} rejected`}));
             res.end();
-            next()
           })
         }
       })
@@ -262,7 +273,6 @@ module.exports.init = function (app, done) {
         res.write(generateEmailHtml('apiResponse', {messageText: err}));
         res.end();
         app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
-        next()
       })
   })
 
@@ -273,7 +283,6 @@ module.exports.init = function (app, done) {
       res.writeHead(503, {'Content-Type': 'text/html'});
       res.write(generateEmailHtml('apiResponse', {messageText: 'Queue not ready'}));
       res.end();
-      return next()
     }
 
     const collection = queue.mongodb.collection('mail.files')
@@ -301,14 +310,12 @@ module.exports.init = function (app, done) {
         }
         app.logger.info(`[${PLUGIN_TITLE}]`, `Read notification for EID ${id} queued for sender`)
       })
-      next()
     })
       .catch(err => {
         res.writeHead(500, {'Content-Type': 'text/html'});
         res.write(generateEmailHtml('apiResponse', {messageText: err}));
         res.end();
         app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
-        next()
       })
   })
 
