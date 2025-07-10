@@ -128,6 +128,14 @@ Status: ${isDelayed ? '4.0.0' : '5.0.0'}
                 return next();
             }
         }
+        // Check if the bounce is a registered mail bounce
+        if (headers.hasHeader('x-epost-registered')) {
+            const trigger = getHeaderBooleanValue(headers.getFirst('x-epost-registered'))
+            if (trigger) {
+                // handled by email-approval.js
+                return next();
+            }
+        }
 
         if (headers.get('Received').length > 25) {
             // too many hops
