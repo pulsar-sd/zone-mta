@@ -76,14 +76,14 @@ module.exports.init = function (app, done) {
 
   app.addHook('queue:bounce', async (bounce, next) => {
     if (bounce.interface !== 'approval') {
-      return next()
+      return
     }
 
     const id = bounce.id
     const bounceReason = bounce.response
     const queue = app.getQueue()
     if (!queue) {
-      return next()
+      return
     }
     const collection = queue.mongodb.collection('mail.files')
     const originalID = bounce.headers.getFirst(ORIGINAL_ID_HEADER)
