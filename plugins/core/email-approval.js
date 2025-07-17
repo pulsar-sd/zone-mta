@@ -144,7 +144,7 @@ module.exports.init = function (app, done) {
         const sendingZoneUpdate = {
           'metadata.data.headers': {
             key: 'x-sending-zone',
-            line: `X-Sending-Zone: ${sendByEpost==='1' ? 'this_is_a_new_sendingzone' : defaultSendingZone}`
+            line: `X-Sending-Zone: ${sendByEpost==='1' ? 'eposthub' : defaultSendingZone}`
           }
         }
         const update = {
