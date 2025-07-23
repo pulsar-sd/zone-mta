@@ -1,5 +1,4 @@
 'use strict'
-
 const MimeNode = require('nodemailer/lib/mime-node')
 const MailDrop = require('@pulsar-sd/zone-mta/lib/mail-drop')
 const { generateEmailHtml, generateEmailPlaintext } = require('@pulsar-sd/zone-mta/lib/registered-mail-templates')
@@ -38,6 +37,7 @@ module.exports.init = function (app, done) {
         type: 'initial',
         subject: app.config.initialSubject,
         to: [envelope.from],
+        // attachment: 'PDFbuffer', // Todo: insert PDF buffer here
       }
       let initialOK = false
       generateAndSendNotification(initialMessageDetails, app, err => {
@@ -103,6 +103,7 @@ module.exports.init = function (app, done) {
         sendingZone: queueData.sendingZone,
         to: [queueData.from],
         errMsg: bounceReason,
+        // attachment: 'PDFbuffer', // Todo: insert PDF buffer here
       }
       generateAndSendNotification(messageDetails, app, err => {
         if (err) {
@@ -177,6 +178,7 @@ module.exports.init = function (app, done) {
                 subject: app.config.arrivalSubject,
                 originalEnvelope: queueData,
                 to: [queueData.from],
+                // attachment: 'PDFbuffer', // Todo: insert PDF buffer here
               }
               generateAndSendNotification(messageDetails, app, err => {
                 if (err) {
@@ -239,6 +241,7 @@ module.exports.init = function (app, done) {
               subject: app.config.rejectSubject,
               originalEnvelope: queueData,
               to: [queueData.from],
+              // attachment: 'PDFbuffer', // Todo: insert PDF buffer here
             }
             let recipientOK = false
             generateAndSendNotification(recipientMessageDetails, app, err => {
@@ -303,6 +306,7 @@ module.exports.init = function (app, done) {
         subject: app.config.readSubject,
         originalEnvelope: queueData,
         to: [queueData.from],
+        // attachment: 'PDFbuffer', // Todo: insert PDF buffer here
       }
       generateAndSendNotification(messageDetails, app, err => {
         if (err) {
@@ -352,7 +356,7 @@ function generateAndSendNotification(messageDetails, app, callback) {
     }
 
     // Build notification message
-    const root = new MimeNode('multipart/alternative')
+    const root = new MimeNode('multipart/mixed')
     root.setHeader('From', notifEnvelope.from)
     root.setHeader('To', notifEnvelope.to.join(', '))
     root.setHeader('Subject', subject)
@@ -360,6 +364,7 @@ function generateAndSendNotification(messageDetails, app, callback) {
     root.setHeader('X-Sending-Zone', sendingZone)
     root.setHeader(ORIGINAL_ID_HEADER, id)
     root.setHeader('MIME-Version', '1.0')
+    const alt = root.createChild('multipart/alternative');
 
     let originalSubject = ''
     if (typeof originalEnvelope.headers.getFirst === 'function') {
@@ -385,21 +390,26 @@ function generateAndSendNotification(messageDetails, app, callback) {
       templateData.rejectUrl = `${baseUrl}/plugin/${app.options.key || 'core/email-approval'}/reject/${id}`
     }
     const plainContent = generateEmailPlaintext(type,templateData)
-    root.createChild('text/plain; charset=utf-8')
+    alt.createChild('text/plain; charset=utf-8')
     .setHeader('Content-Disposition', 'inline')
     .setContent(plainContent)
 
 
     const htmlContent = generateEmailHtml(type, templateData)
-    root.createChild('text/html; charset=UTF-8')
+    alt.createChild('text/html; charset=UTF-8')
     .setHeader('Content-Disposition', 'inline')
     .setContent(htmlContent)
 
-
-
+    if(messageDetails.attachment) {
+      root
+        .createChild('application/pdf')
+        .setHeader('Content-Type', 'application/pdf; name=confirm-reciept.pdf')
+        .setHeader('Content-Disposition', 'attachment; filename=confirm-reciept.pdf')
+        .setHeader('Content-Transfer-Encoding', 'base64')
+        .setContent(messageDetails.attachment);
+    }
 
     const maildrop = new MailDrop(queue)
-
     maildrop.add(notifEnvelope, root.createReadStream(), err => {
       if (err && err.name !== 'SMTPResponse') {
         return callback(err)
