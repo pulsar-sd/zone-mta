@@ -2,6 +2,7 @@
 const MimeNode = require('nodemailer/lib/mime-node')
 const MailDrop = require('@pulsar-sd/zone-mta/lib/mail-drop')
 const { generateEmailHtml, generateEmailPlaintext } = require('@pulsar-sd/zone-mta/lib/registered-mail-templates')
+const { generatePdf } = require('@pulsar-sd/zone-mta/lib/registered-pdf-generation')
 
 module.exports.title = 'Email Approval'
 const REGISTERED_HEADER = 'X-Epost-Registered'
@@ -12,7 +13,7 @@ module.exports.init = function (app, done) {
   const HOLD_TIME = 29 * 23 * 59 * 59 * 1000 // 29 days, 23 hours, 59 minutes, 59 seconds
   const approvalExpiry = app.config.approvalExpiry || 7 * 24 * 60 * 60 * 1000 // 7 days
 
-  app.addHook('message:queue', (envelope, messageInfo, next) => {
+  app.addHook('message:queue', async (envelope, messageInfo, next) => {
     try {
       const skipDelivery = ['approval', 'confirm', 'bounce']
       if (skipDelivery.includes(envelope.interface)) {
@@ -20,6 +21,10 @@ module.exports.init = function (app, done) {
       }
 
       if (!envelope.headers.getFirst(REGISTERED_HEADER)) {
+        return next()
+      }
+
+      if(envelope.headers.getFirst(REGISTERED_HEADER) !== 'true') {
         return next()
       }
 
@@ -37,7 +42,7 @@ module.exports.init = function (app, done) {
         type: 'initial',
         subject: app.config.initialSubject,
         to: [envelope.from],
-        // attachment: 'PDFbuffer', // Todo: insert PDF buffer here
+        attachment: await generatePdf(),
       }
       let initialOK = false
       generateAndSendNotification(initialMessageDetails, app, err => {
@@ -90,7 +95,7 @@ module.exports.init = function (app, done) {
     const query = {
       'metadata.data.id': originalID
     }
-    collection.findOne(query).then(record => {
+    collection.findOne(query).then(async record => {
       if (!record) {
         throw new Error(`Record with ID ${originalID} not found!`)
       }
@@ -103,7 +108,7 @@ module.exports.init = function (app, done) {
         sendingZone: queueData.sendingZone,
         to: [queueData.from],
         errMsg: bounceReason,
-        // attachment: 'PDFbuffer', // Todo: insert PDF buffer here
+        attachment: await generatePdf(),
       }
       generateAndSendNotification(messageDetails, app, err => {
         if (err) {
@@ -164,7 +169,7 @@ module.exports.init = function (app, done) {
             res.write(generateEmailHtml('apiResponse', {messageText: err.message}));
             res.end();
           } else {
-            collection.update({'metadata.data.id': id}, {$push:sendingZoneUpdate},err=> {
+            collection.update({'metadata.data.id': id}, {$push:sendingZoneUpdate},async err=> {
               if(err) {
                 res.writeHead(500, {'Content-Type': 'text/html'});
                 res.write(generateEmailHtml('apiResponse', {messageText: err.message}));
@@ -178,7 +183,7 @@ module.exports.init = function (app, done) {
                 subject: app.config.arrivalSubject,
                 originalEnvelope: queueData,
                 to: [queueData.from],
-                // attachment: 'PDFbuffer', // Todo: insert PDF buffer here
+                attachment: await generatePdf(),
               }
               generateAndSendNotification(messageDetails, app, err => {
                 if (err) {
@@ -228,7 +233,7 @@ module.exports.init = function (app, done) {
           res.end();
         }
         else {
-          queue.removeMessage(id, rmErr => {
+          queue.removeMessage(id, async rmErr => {
             if (rmErr) {
               res.writeHead(500, {'Content-Type': 'text/html'});
               res.write(generateEmailHtml('apiResponse', {messageText: rmErr.message}));
@@ -241,7 +246,7 @@ module.exports.init = function (app, done) {
               subject: app.config.rejectSubject,
               originalEnvelope: queueData,
               to: [queueData.from],
-              // attachment: 'PDFbuffer', // Todo: insert PDF buffer here
+              attachment: await generatePdf(),
             }
             let recipientOK = false
             generateAndSendNotification(recipientMessageDetails, app, err => {
@@ -292,7 +297,7 @@ module.exports.init = function (app, done) {
     const query = {
       'metadata.data.id': id
     }
-    collection.findOne(query).then(record => {
+    collection.findOne(query).then(async record => {
       if (!record) {
         throw new Error(`Record with ID ${id} not found!`)
       }
@@ -306,7 +311,7 @@ module.exports.init = function (app, done) {
         subject: app.config.readSubject,
         originalEnvelope: queueData,
         to: [queueData.from],
-        // attachment: 'PDFbuffer', // Todo: insert PDF buffer here
+        attachment: await generatePdf(),
       }
       generateAndSendNotification(messageDetails, app, err => {
         if (err) {
