@@ -42,7 +42,7 @@ module.exports.init = function (app, done) {
         type: 'initial',
         subject: app.config.initialSubject,
         to: [envelope.from],
-        attachment: await generatePdf(),
+        attachment: await generatePdf({ status:'initial', data:{}, metadata:{} }),
       }
       let initialOK = false
       generateAndSendNotification(initialMessageDetails, app, err => {
@@ -108,7 +108,7 @@ module.exports.init = function (app, done) {
         sendingZone: queueData.sendingZone,
         to: [queueData.from],
         errMsg: bounceReason,
-        attachment: await generatePdf(),
+        attachment: await generatePdf({ status:'error', data:{}, metadata:{} }),
       }
       generateAndSendNotification(messageDetails, app, err => {
         if (err) {
@@ -183,7 +183,7 @@ module.exports.init = function (app, done) {
                 subject: app.config.arrivalSubject,
                 originalEnvelope: queueData,
                 to: [queueData.from],
-                attachment: await generatePdf(),
+                attachment: await generatePdf({ status:'arrival', data:{}, metadata:{} }),
               }
               generateAndSendNotification(messageDetails, app, err => {
                 if (err) {
@@ -246,7 +246,7 @@ module.exports.init = function (app, done) {
               subject: app.config.rejectSubject,
               originalEnvelope: queueData,
               to: [queueData.from],
-              attachment: await generatePdf(),
+              attachment: await generatePdf({ status:'reject', data:{}, metadata:{} }),
             }
             let recipientOK = false
             generateAndSendNotification(recipientMessageDetails, app, err => {
@@ -311,7 +311,7 @@ module.exports.init = function (app, done) {
         subject: app.config.readSubject,
         originalEnvelope: queueData,
         to: [queueData.from],
-        attachment: await generatePdf(),
+        attachment: await generatePdf({ status:'read', data:{}, metadata:{} }),
       }
       generateAndSendNotification(messageDetails, app, err => {
         if (err) {
