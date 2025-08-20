@@ -142,7 +142,10 @@ module.exports.init = function (app, done) {
     try {
     collection.findOne(query).then(record => {
       if (!record) {
-        throw new Error(`Record with ID ${id} not found!`)
+        res.writeHead(404, {'Content-Type': 'text/html'});
+        res.write(generateEmailHtml('apiResponse', {messageText: 'Message not found. It may already have been processed.'}));
+        res.end();
+        app.logger.info(`[${PLUGIN_TITLE}]`, `Attempted acceptance of nonexistent message ${id}`)
       }
 
         const queueData = record.metadata.data
@@ -223,7 +226,10 @@ module.exports.init = function (app, done) {
     }
     collection.findOne(query).then(record => {
       if (!record) {
-        throw new Error(`Record with ID ${id} not found!`)
+        res.writeHead(404, {'Content-Type': 'text/html'});
+        res.write(generateEmailHtml('apiResponse', {messageText: 'Message not found. It may already have been processed.'}));
+        res.end();
+        app.logger.info(`[${PLUGIN_TITLE}]`, `Attempted rejection of nonexistent message ${id}`)
       }
       const queueData = record.metadata.data
       queue.mongodb.collection(queue.options.collection).deleteMany({ id }, err => {
@@ -299,7 +305,10 @@ module.exports.init = function (app, done) {
     }
     collection.findOne(query).then(async record => {
       if (!record) {
-        throw new Error(`Record with ID ${id} not found!`)
+        res.writeHead(404, {'Content-Type': 'text/html'});
+        res.write(generateEmailHtml('apiResponse', {messageText: 'Message not found. It may already have been processed.'}));
+        res.end();
+        app.logger.info(`[${PLUGIN_TITLE}]`, `Attempted reading of nonexistent message ${id}`)
       }
       res.writeHead(200, {'Content-Type': 'text/html'});
       res.write(generateEmailHtml('apiResponse', {messageText: `Message ${id} read`}));
