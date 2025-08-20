@@ -132,8 +132,8 @@ module.exports.init = function (app, done) {
       res.writeHead(503, {'Content-Type': 'text/html'});
       res.write(generateEmailHtml('apiResponse', {messageText: `Queue not ready`}));
       res.end();
+      return
     }
-
 
     const collection = queue.mongodb.collection('mail.files')
     const query = {
@@ -146,6 +146,7 @@ module.exports.init = function (app, done) {
         res.write(generateEmailHtml('apiResponse', {messageText: 'Message not found. It may already have been processed.'}));
         res.end();
         app.logger.info(`[${PLUGIN_TITLE}]`, `Attempted acceptance of nonexistent message ${id}`)
+        return
       }
 
         const queueData = record.metadata.data
@@ -203,11 +204,13 @@ module.exports.init = function (app, done) {
         res.write(generateEmailHtml('apiResponse', {messageText: err}));
         res.end();
         app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
+        return
       })
     } catch (err) {
       res.writeHead(503, {'Content-Type': 'text/html'});
       res.write(generateEmailHtml('apiResponse', {messageText: err}));
       res.end();
+      return
     }
   })
 
@@ -218,6 +221,7 @@ module.exports.init = function (app, done) {
       res.writeHead(503, {'Content-Type': 'text/html'});
       res.write(generateEmailHtml('apiResponse', {messageText: 'Queue not ready'}));
       res.end();
+      return
     }
 
     const collection = queue.mongodb.collection('mail.files')
@@ -230,6 +234,7 @@ module.exports.init = function (app, done) {
         res.write(generateEmailHtml('apiResponse', {messageText: 'Message not found. It may already have been processed.'}));
         res.end();
         app.logger.info(`[${PLUGIN_TITLE}]`, `Attempted rejection of nonexistent message ${id}`)
+        return
       }
       const queueData = record.metadata.data
       queue.mongodb.collection(queue.options.collection).deleteMany({ id }, err => {
@@ -237,6 +242,7 @@ module.exports.init = function (app, done) {
           res.writeHead(500, {'Content-Type': 'text/html'});
           res.write(generateEmailHtml('apiResponse', {messageText: err.msg}));
           res.end();
+          return
         }
         else {
           queue.removeMessage(id, async rmErr => {
@@ -278,6 +284,7 @@ module.exports.init = function (app, done) {
             res.writeHead(200, {'Content-Type': 'text/html'});
             res.write(generateEmailHtml('apiResponse', {messageText: `Message ${id} rejected`}));
             res.end();
+            return
           })
         }
       })
@@ -287,6 +294,7 @@ module.exports.init = function (app, done) {
         res.write(generateEmailHtml('apiResponse', {messageText: err}));
         res.end();
         app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
+        return
       })
   })
 
@@ -297,6 +305,7 @@ module.exports.init = function (app, done) {
       res.writeHead(503, {'Content-Type': 'text/html'});
       res.write(generateEmailHtml('apiResponse', {messageText: 'Queue not ready'}));
       res.end();
+      return
     }
 
     const collection = queue.mongodb.collection('mail.files')
@@ -309,6 +318,7 @@ module.exports.init = function (app, done) {
         res.write(generateEmailHtml('apiResponse', {messageText: 'Message not found. It may already have been processed.'}));
         res.end();
         app.logger.info(`[${PLUGIN_TITLE}]`, `Attempted reading of nonexistent message ${id}`)
+        return
       }
       res.writeHead(200, {'Content-Type': 'text/html'});
       res.write(generateEmailHtml('apiResponse', {messageText: `Message ${id} read`}));
@@ -334,6 +344,7 @@ module.exports.init = function (app, done) {
         res.write(generateEmailHtml('apiResponse', {messageText: err}));
         res.end();
         app.logger.error(`[${PLUGIN_TITLE}] Error:`, err)
+        return
       })
   })
 
