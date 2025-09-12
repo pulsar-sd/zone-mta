@@ -13,6 +13,15 @@ module.exports.init = function (app, done) {
   const HOLD_TIME = 29 * 23 * 59 * 59 * 1000 // 29 days, 23 hours, 59 minutes, 59 seconds
   const approvalExpiry = app.config.approvalExpiry || 7 * 24 * 60 * 60 * 1000 // 7 days
 
+  function generateAndSendNotificationAsync(details, app) {
+    return new Promise((resolve, reject) => {
+      generateAndSendNotification(details, app, err => {
+        if (err) return reject(err)
+        resolve(true)
+      })
+    })
+  }
+
   app.addHook('message:queue', async (envelope, messageInfo, next) => {
     try {
       const skipDelivery = ['approval', 'confirm', 'bounce']
