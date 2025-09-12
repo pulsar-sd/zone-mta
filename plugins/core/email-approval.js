@@ -44,14 +44,6 @@ module.exports.init = function (app, done) {
         to: [envelope.from],
         attachment: await generatePdf({ status:'initial', data:{}, metadata:{} }),
       }
-      let initialOK = false
-      generateAndSendNotification(initialMessageDetails, app, err => {
-        if (err) {
-          throw new Error(err.message)
-        }
-        initialOK = true
-      })
-
       const notifMessageDetails = {
         id: envelope.id,
         originalEnvelope: envelope,
@@ -62,15 +54,17 @@ module.exports.init = function (app, done) {
         email: envelope.to,
         sendingZone: envelope.sendingZone
       }
-      let notifOK = false
-      generateAndSendNotification(notifMessageDetails, app, err => {
-        if (err) {
-          throw new Error(err.message)
-        }
-        notifOK = true
-      })
+
+      const [initialOK, notifOK] = await Promise.all([
+        generateAndSendNotificationAsync(initialMessageDetails, app),
+        generateAndSendNotificationAsync(notifMessageDetails, app)
+      ])
+
       if (initialOK && notifOK) {
-        app.logger.info(`[${PLUGIN_TITLE}]`, `Acceptance and notification for EID ${id} queued for sender and recipient(s)`)
+        app.logger.info(`[${PLUGIN_TITLE}]`, `Acceptance and notification for EID ${envelope.id} queued for sender and recipient(s)`)
+        const milterAddress = `${envelope.messageId.slice(1, envelope.messageId.indexOf('@'))}${app.config.returnReceiptTo}`
+        envelope.headers.add('Return-Receipt-To', milterAddress)
+        envelope.headers.add('Disposition-Notification-To', milterAddress)
       }
       next()
     } catch (err) {
