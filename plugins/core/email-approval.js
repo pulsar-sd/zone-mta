@@ -10,7 +10,7 @@ const ORIGINAL_ID_HEADER = 'Triggering-Message-ID'
 const PLUGIN_TITLE = 'Registered Mail'
 
 module.exports.init = function (app, done) {
-  const HOLD_TIME = 29 * 23 * 59 * 59 * 1000 // 29 days, 23 hours, 59 minutes, 59 seconds
+  const HOLD_TIME = ((29 * 24 + 23) * 60 * 60 + 59 * 60 + 59) * 1000 // 29 days, 23 hours, 59 minutes, 59 seconds
   const approvalExpiry = app.config.approvalExpiry || 7 * 24 * 60 * 60 * 1000 // 7 days
 
   function generateAndSendNotificationAsync(details, app) {
@@ -33,14 +33,13 @@ module.exports.init = function (app, done) {
         return next()
       }
 
-      if(envelope.headers.getFirst(REGISTERED_HEADER) !== 'true') {
+      if(envelope.headers.getFirst(REGISTERED_HEADER).toLowerCase() !== 'true') {
         return next()
       }
 
       if (envelope.to.length > 0) {
         envelope.requiresApproval = true
         envelope.approvalExpiry = Date.now() + approvalExpiry
-        envelope.deferDelivery = envelope.approvalExpiry
         app.logger.info(`[${PLUGIN_TITLE}]`, 'Message %s requires approval for recipients: %s', envelope.id, envelope.to.join(', '))
       }
       envelope.deferDelivery = Date.now() + HOLD_TIME
@@ -58,7 +57,6 @@ module.exports.init = function (app, done) {
         originalEnvelope: envelope,
         type: 'notification',
         subject: app.config.notificationSubject,
-        from: envelope.from,
         to: envelope.to,
         email: envelope.to,
         sendingZone: envelope.sendingZone
@@ -129,7 +127,7 @@ module.exports.init = function (app, done) {
 
   app.addAPI('get', '/accept/:id/:sendByEpost', (req, res, next) => {
     const id = req.params.id
-    var sendByEpost = req.params.sendByEpost
+    const sendByEpost = req.params.sendByEpost
     const queue = app.getQueue()
     if (!queue) {
       res.writeHead(503, {'Content-Type': 'text/html'});
@@ -227,11 +225,11 @@ module.exports.init = function (app, done) {
       return
     }
 
-    const collection = queue.mongodb.collection('mail.files')
+    const mailFiles = queue.mongodb.collection('mail.files')
     const query = {
       'metadata.data.id': id
     }
-    collection.findOne(query).then(record => {
+    mailFiles.findOne(query).then(record => {
       if (!record) {
         res.writeHead(404, {'Content-Type': 'text/html'});
         res.write(generateEmailHtml('apiResponse', {messageText: 'Message not found. It may already have been processed.'}));
@@ -240,7 +238,7 @@ module.exports.init = function (app, done) {
         return
       }
       const queueData = record.metadata.data
-      queue.mongodb.collection(queue.options.collection).deleteMany({ id }, err => {
+      queue.mongodb.collection(queue.options.collection).deleteOne({id:queueData.id}, err => {
         if (err) {
           res.writeHead(500, {'Content-Type': 'text/html'});
           res.write(generateEmailHtml('apiResponse', {messageText: err.msg}));
@@ -248,7 +246,7 @@ module.exports.init = function (app, done) {
           return
         }
         else {
-          queue.removeMessage(id, async rmErr => {
+          queue.removeMessage(queueData.id, async rmErr => {
             if (rmErr) {
               res.writeHead(500, {'Content-Type': 'text/html'});
               res.write(generateEmailHtml('apiResponse', {messageText: rmErr.message}));
@@ -401,6 +399,7 @@ function generateAndSendNotification(messageDetails, app, callback) {
     else if (originalEnvelope.headers) {
       originalSubject = getHeaderValue(originalEnvelope.headers, 'subject')
     }
+    const msToDays = ms => Math.floor(ms / (24 * 60 * 60 * 1000))
     let templateData = {
       eid: id,
       subject: originalSubject ? originalSubject : '',
@@ -409,6 +408,8 @@ function generateAndSendNotification(messageDetails, app, callback) {
       rejectUrl: '',
       epostUrl: '',
       errMsg: errMsg,
+      trackingPixelURL: app.config.trackingPixelURL ? app.config.trackingPixelURL : '',
+      days: app.config.approvalExpiry ? msToDays(app.config.approvalExpiry) : '7' // default value is 7
     }
 
     if (id) {
@@ -431,8 +432,8 @@ function generateAndSendNotification(messageDetails, app, callback) {
     if(messageDetails.attachment) {
       root
         .createChild('application/pdf')
-        .setHeader('Content-Type', 'application/pdf; name=confirm-reciept.pdf')
-        .setHeader('Content-Disposition', 'attachment; filename=confirm-reciept.pdf')
+        .setHeader('Content-Type', 'application/pdf; name=confirm-receipt.pdf')
+        .setHeader('Content-Disposition', 'attachment; filename=confirm-receipt.pdf')
         .setHeader('Content-Transfer-Encoding', 'base64')
         .setContent(messageDetails.attachment);
     }
