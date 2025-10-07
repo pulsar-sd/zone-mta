@@ -210,6 +210,10 @@ module.exports = {
             // If bounce reporting fails (non 2xx response), the notification is retried a few times during the next minutes
             url: 'http://localhost:12080/report-bounce'
         },
+        // Email alert plugin – low disk space alert for historical data archive
+        'core/email-alert': {
+          enabled: ['receiver', 'main'],
+        },
 
         // Calculate and log md5 hashes for all image/* and application/* attachments. Attachment info with the hash
         // is added to the envelope object, so you can also screen messages against some specific attachments.
