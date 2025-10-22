@@ -42,7 +42,7 @@ module.exports.init = function (app, done) {
       }
     }
 
-    rootNode.createChild('text/plain').setHeader('Content-Description', 'Notification').setContent(alertContent);
+    rootNode.createChild('text/html').setHeader('Content-Description', 'Notification').setContent(alertContent);
 
     if(alert.includeDiagnostic) {
       rootNode
