@@ -1,5 +1,49 @@
 # Changelog
 
+## [3.10.0](https://github.com/pulsar-sd/zone-mta/compare/v3.9.6...v3.10.0) (2025-10-23)
+
+
+### Features
+
+* add zone name to prometheus ([#422](https://github.com/pulsar-sd/zone-mta/issues/422)) ([df06cba](https://github.com/pulsar-sd/zone-mta/commit/df06cba31adb78bb151679a292df0cd947246b4c))
+* **api:** Allow ordering queue listing ([41017ff](https://github.com/pulsar-sd/zone-mta/commit/41017ffa3cdc852e0ea4960ec45ea94092aa7699))
+* **bounces:** Send a delayed notification email if a delivery has not been completed after 3 hours ZMS-56 ([#363](https://github.com/pulsar-sd/zone-mta/issues/363)) ([a535e3a](https://github.com/pulsar-sd/zone-mta/commit/a535e3a7e10e517eaac13af6819420aa45d10725))
+* Custom send functionality ([3ba0c8e](https://github.com/pulsar-sd/zone-mta/commit/3ba0c8ed475ffb2f9ffe974632e62e11c255da43))
+* **plugins:** Added new plugin hook sender:responseError, allow configuratble defer times ([#360](https://github.com/pulsar-sd/zone-mta/issues/360)) ([061248f](https://github.com/pulsar-sd/zone-mta/commit/061248f647a98a74f33fa0da09ea2a13e42be6ac))
+
+
+### Bug Fixes
+
+* **api:** added endpoint to list locked domains ([25102ca](https://github.com/pulsar-sd/zone-mta/commit/25102ca71010951fb592c6d8bdb4852976a49c1e))
+* **api:** Added query argument `includeDisabled` to /zones API endpoint. If `true` returns all zones ([fb826d6](https://github.com/pulsar-sd/zone-mta/commit/fb826d6de294f23387b1fb4ef90ad20889779113))
+* **bounce:** Fixed Outlook no-such-user bounce detection ([#357](https://github.com/pulsar-sd/zone-mta/issues/357)) ([0b49571](https://github.com/pulsar-sd/zone-mta/commit/0b49571fb6677a1570ec1b266cecb81aa5e567e5))
+* **bounces:** fixed bounce handling in mail queue ([05d2b8d](https://github.com/pulsar-sd/zone-mta/commit/05d2b8d6ec21d4c280b5da7e7e1dd1053354f49d))
+* **bounces:** Fixed MS365 missing user bounce check regex ([3e0853a](https://github.com/pulsar-sd/zone-mta/commit/3e0853aef154bdfcdaf7d879017559991e03b507))
+* **bounces:** Require word boundary when matching extended status codes ([#413](https://github.com/pulsar-sd/zone-mta/issues/413)) ([93b532c](https://github.com/pulsar-sd/zone-mta/commit/93b532c47c488bf88f6b4bf74199cac8838e4131))
+* **deploy:** Added repository URL for automatic publishing ([6172534](https://github.com/pulsar-sd/zone-mta/commit/6172534567299e0c9c568446c6b62e87949e9272))
+* **deploy:** Set up auto publishing to NPM ([#338](https://github.com/pulsar-sd/zone-mta/issues/338)) ([b1d6fef](https://github.com/pulsar-sd/zone-mta/commit/b1d6fef8931a4e40042694414318d1dd5fda2914))
+* **deploy:** updated package-lock to fix release ([4248526](https://github.com/pulsar-sd/zone-mta/commit/42485265748bef6cbcf34eb570fdfae422128abb))
+* **deps:** Bumped deps to clear out some security warnings ([3849037](https://github.com/pulsar-sd/zone-mta/commit/3849037ba0a6a680c4b9a3d2e4bd371c58bc33aa))
+* **deps:** bumped nodemailer and smtp-server versions ([0a2371d](https://github.com/pulsar-sd/zone-mta/commit/0a2371dbc4dc5874ebea04b8ce3568030039d853))
+* **DKIM:** Use Mailauth to calculate message body hashes ([9117281](https://github.com/pulsar-sd/zone-mta/commit/9117281b84d8339062a728624728b6ce03925850))
+* **logs:** added new remote log entry QUEUE_POLL ([800b583](https://github.com/pulsar-sd/zone-mta/commit/800b5835e99a7f1e0370b114b2821464785ac30a))
+* **logs:** send bounce information to remote log ([3fd3986](https://github.com/pulsar-sd/zone-mta/commit/3fd3986b3874071e135060fca7695a23715c4ff1))
+* **loop:** reject messages with too many Received headers ([cbffa6d](https://github.com/pulsar-sd/zone-mta/commit/cbffa6d3dcadb937b9303a42fbe2603fd1668fb8))
+* **mail2http:** retry 5xx responses ([33aa6d5](https://github.com/pulsar-sd/zone-mta/commit/33aa6d5b3c726206563649137de2b42e9bb38bd7))
+* **mime-head:** Increased allowd MIME node header size to 2MB ([26e4896](https://github.com/pulsar-sd/zone-mta/commit/26e48967bd96e8aa08b1986513fe4733961bd672))
+* **mta-sts:** set MTA-STS as disabled if redis error ZMS-170 ([#425](https://github.com/pulsar-sd/zone-mta/issues/425)) ([a9d543e](https://github.com/pulsar-sd/zone-mta/commit/a9d543efb71fe76e9f66c3ea2f46d8010200418d))
+* Pass recipient address to send function ([295b238](https://github.com/pulsar-sd/zone-mta/commit/295b23810d182a8c01549f640fb0040981d23aab))
+* **queue:** mark emails with 'mailbox full' responses as rejected, not deferred ([c2040e2](https://github.com/pulsar-sd/zone-mta/commit/c2040e284e337e79c6987b3cf393c669d08a04c8))
+* **queue:** replaced non-likely bounces from deferred to rejected ([c701efd](https://github.com/pulsar-sd/zone-mta/commit/c701efde4907ea969aef92e7dbfc517a993d8ce9))
+* **readme:** Updated readme to trigger package publish ([b90d31b](https://github.com/pulsar-sd/zone-mta/commit/b90d31b610862bf1c9db9c4df41af1a41a905866))
+* Remove recipient ([3e8dcdc](https://github.com/pulsar-sd/zone-mta/commit/3e8dcdc0e2a0f8a594f5afd4034bcde649cb3629))
+* **sts:** do not try to store error object as JSON value ([9a45336](https://github.com/pulsar-sd/zone-mta/commit/9a45336a2bc92247c95880abf1aa0df42b682b2a))
+* **tests:** Added Github action to run tests ([#341](https://github.com/pulsar-sd/zone-mta/issues/341)) ([908edf9](https://github.com/pulsar-sd/zone-mta/commit/908edf9321be5342426127d081997bde116ff23b))
+* **tls-options:** Retrieve ignoreTLS value from Sending Zone, or default to false ([#365](https://github.com/pulsar-sd/zone-mta/issues/365)) ([336e835](https://github.com/pulsar-sd/zone-mta/commit/336e8358be5992bd15392fc07064540fda4aa23d))
+* **tls:** sender.js will on a tls failure try a delivery with out tls. However on freebsd 13 a misconfigured server may show ([#393](https://github.com/pulsar-sd/zone-mta/issues/393)) ([530b495](https://github.com/pulsar-sd/zone-mta/commit/530b495959fdcd2f5585738ddf6e01492754cfa9))
+* typos ([#415](https://github.com/pulsar-sd/zone-mta/issues/415)) ([33c5d28](https://github.com/pulsar-sd/zone-mta/commit/33c5d284ef0962f3b4f00b453db4ba70fd4fedc8))
+* version bump. synced with parent repo ([d9771d5](https://github.com/pulsar-sd/zone-mta/commit/d9771d5074052312a2aaa730e2b0c7a4ecbac778))
+
 ## [3.9.6](https://github.com/zone-eu/zone-mta/compare/v3.9.5...v3.9.6) (2024-05-13)
 
 
